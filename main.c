@@ -10,14 +10,16 @@
 pthread_mutex_t mutex_stdout = PTHREAD_MUTEX_INITIALIZER;
 
 void *f1(void *args) {
-    sleep(1);
+    long arg = (long) args;
+    sleep(arg % 3);
     pthread_mutex_lock(&mutex_stdout);
-    printf("Task 1\n");
+    printf("Task %ld\n", arg);
     pthread_mutex_unlock(&mutex_stdout);
     return NULL;
 }
 
 int main() {
+    srand(0);
     ThreadPool *thread_pool = new_thread_pool(3);
 
     Task task = {
@@ -26,16 +28,13 @@ int main() {
         .ret = NULL,
         .has_finished = false,
     };
-    add_task(thread_pool, &task);
-    add_task(thread_pool, &task);
-    add_task(thread_pool, &task);
-    add_task(thread_pool, &task);
-    add_task(thread_pool, &task);
+#define TASKS_TO_DO 17
+    for (size_t c= 0; c < TASKS_TO_DO; ++c){
+        task.args = (void *) ((long) rand());
+        add_task(thread_pool, &task);
+    }
 
-    remove_producer_from_buffer(&thread_pool->communication.buffer);
-    sleep(6);
-    release_pool(thread_pool);
-    // finish_executing_and_terminate(thread_pool);
+     finish_executing_and_terminate(thread_pool);
 
     return EXIT_SUCCESS;
 }

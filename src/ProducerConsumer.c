@@ -104,10 +104,7 @@ void check_closing_channel(ProducerConsumerBuffer *buf) {
 
     // Signal consumers to stop waiting
     if (!has_producers && has_consumers) {
-        int total_consumers = 0;
-        sem_getvalue(&buf->total_consumers, &total_consumers);
-
-        for (int c = 0; c < total_consumers; c++){
+        while (sem_trywait(&buf->total_consumers) == 0) {
             sem_post(&buf->filled_places);
         }
     }

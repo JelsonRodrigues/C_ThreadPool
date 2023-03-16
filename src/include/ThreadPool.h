@@ -6,7 +6,7 @@
 
 typedef struct {
     Vector threads;
-    ProducerConsumer communication;
+    ProducerConsumerBuffer communication;
 } ThreadPool;
 
 typedef struct {

@@ -1,10 +1,9 @@
 #include "include/ThreadPool.h"
 
 ThreadPool *new_thread_pool(size_t number_of_threads){
-    size_t id_buffer = create_new_buffer(MAX_WAITING_TASKS, sizeof(Task));
     ThreadPool new = {
         .threads = vec_new(number_of_threads, sizeof(pthread_t), STRICT),
-        .communication = get_producer_consumer(id_buffer),
+        .communication = create_producer_consumer_buffer(MAX_WAITING_TASKS, sizeof(Task)),
     };
 
     ThreadPool *new_pool = (ThreadPool *) malloc(sizeof(ThreadPool));
@@ -12,10 +11,10 @@ ThreadPool *new_thread_pool(size_t number_of_threads){
     
     memmove(new_pool, &new, sizeof(ThreadPool));
     
-    add_producer_to_buffer(&new_pool->communication.buffer);
+    add_producer_to_buffer(&new_pool->communication);
 
     for (size_t c = 0; c < number_of_threads; c++) {
-        add_consumer_to_buffer(&new_pool->communication.buffer);
+        add_consumer_to_buffer(&new_pool->communication);
         pthread_t tid;
         pthread_create(&tid, NULL, runner, &new_pool->communication);
         vec_push(&new_pool->threads, &tid);
@@ -25,8 +24,7 @@ ThreadPool *new_thread_pool(size_t number_of_threads){
 }
 
 void *runner(void *args) {
-    ProducerConsumer *prod_cons = (ProducerConsumer *) args;
-    ProducerConsumerBuffer *buff = &prod_cons->buffer;
+    ProducerConsumerBuffer *buff =(ProducerConsumerBuffer *) args;
 
     bool received = false;
     do {
@@ -48,11 +46,11 @@ void *runner(void *args) {
 bool try_add_task(ThreadPool *self, Task *new_task) {
     assert(self != NULL && new_task != NULL);
 
-    return try_insert_to_buffer(&self->communication.buffer, new_task);
+    return try_insert_to_buffer(&self->communication, new_task);
 }
 bool add_task(ThreadPool *self, Task *new_task){
     assert(self != NULL && new_task != NULL);
-    return insert_to_buffer(&self->communication.buffer, new_task);
+    return insert_to_buffer(&self->communication, new_task);
 }
 void release_pool(ThreadPool *self){
     assert(self != NULL);
@@ -63,7 +61,7 @@ void release_pool(ThreadPool *self){
     }
     vec_free(&self->threads);
 
-    free_ProducerConsumer(&self->communication);
+    free_ProducerConsumerBuffer(&self->communication);
     
     free(self);
 }
@@ -71,10 +69,10 @@ void release_pool(ThreadPool *self){
 void finish_executing_and_terminate(ThreadPool *self){
     assert(self != NULL);
     int number_of_producers = 0;
-    sem_getvalue(&self->communication.buffer.total_producers, &number_of_producers);
+    sem_getvalue(&self->communication.total_producers, &number_of_producers);
     
     for (int c = 0; c < number_of_producers; ++c) {
-        remove_producer_from_buffer(&self->communication.buffer);
+        remove_producer_from_buffer(&self->communication);
     }
 
     size_t number_of_items = self->threads.len;

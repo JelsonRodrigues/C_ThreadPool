@@ -20,8 +20,8 @@ All items that were produced will be consumed before consumers dropping the chan
 A thread pool library that allow the creation of an arbitrary number of threads using the `phtreads` library. The threads communicate with a producer consumer buffer and keep waiting for `Task` to arrive. These `Task` can be inserted into a buffer, and the pool will execute the tasks.
 
 # TODO
-<input type="checkbox"> Finish the TheadPool implementation <br>
-<input type="checkbox"> Test ProducerConsumer and TheadPool for deadlocks <br>
-<input type="checkbox"> Test ProducerConsumer <br>
-<input type="checkbox"> Document the code <br>
-<input type="checkbox" checked> Test Vector for memory leaks and wrong acces <br>
+- [ ] Finish the TheadPool implementation <br>
+- [ ] Test ProducerConsumer and TheadPool for deadlocks <br>
+- [ ] Test ProducerConsumer <br>
+- [ ] Document the code <br>
+- [x] Test Vector for memory leaks and wrong acces <br>

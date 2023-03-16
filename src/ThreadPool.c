@@ -26,12 +26,12 @@ ThreadPool *new_thread_pool(size_t number_of_threads){
 
 void *runner(void *args) {
     ProducerConsumer *prod_cons = (ProducerConsumer *) args;
-    ProducerConsumerBuffer buff = prod_cons->buffer;
-    
+    ProducerConsumerBuffer *buff = &prod_cons->buffer;
+
     bool received = false;
     do {
         Task task;
-        received = get_item_from_buffer(&buff, &task);
+        received = get_item_from_buffer(buff, &task);
 
         if (received){
             task.has_finished = false;
@@ -40,7 +40,7 @@ void *runner(void *args) {
         }
     } while (received);
 
-    remove_consumer_from_buffer(&buff);
+    remove_consumer_from_buffer(buff);
 
     return NULL;
 }
@@ -77,7 +77,8 @@ void finish_executing_and_terminate(ThreadPool *self){
         remove_producer_from_buffer(&self->communication.buffer);
     }
 
-    for (size_t c = 0; c < self->threads.len; ++c){
+    size_t number_of_items = self->threads.len;
+    for (size_t c = 0; c < number_of_items; ++c){
         pthread_t tid;
         vec_remove(&self->threads, c, &tid);
         pthread_join(tid, NULL);

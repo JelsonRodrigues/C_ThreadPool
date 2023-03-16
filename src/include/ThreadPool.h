@@ -2,6 +2,7 @@
 #define THREADPOOL_H
 
 #include "ProducerConsumer.h"
+#include "pthread.h"
 
 typedef struct {
     Vector threads;

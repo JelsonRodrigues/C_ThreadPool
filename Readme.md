@@ -5,7 +5,7 @@ A C ThreadPool library for linux implementation (not fully done yet) using pthre
 There is a `Makefile` for building the project <br>
 ```shell
 git clone https://github.com/JelsonRodrigues/C_ThreadPool
-cd C_ThreadPool`
+cd C_ThreadPool
 make release
 ```
 The result is the executable in the `./bin` folder and all object files in the `./build` folder

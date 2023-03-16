@@ -30,7 +30,9 @@ bool vec_insert(Vector *self, const int index, const void *value) {
     if (self->vector == NULL) return false;
     
     // Move all values to the right
-    memmove(vec_get_addr_pos(self, position + 1), vec_get_addr_pos(self, position), (self->len - position) * self->item_size);
+    if (self->capacity > position + 1){
+        memmove(vec_get_addr_pos(self, position + 1), vec_get_addr_pos(self, position), (self->len - position) * self->item_size);
+    }
     // Copy the value to the buffer
     memmove(vec_get_addr_pos(self, position), value, self->item_size);
     return true;

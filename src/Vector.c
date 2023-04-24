@@ -262,7 +262,13 @@ inline void vec_swap(Vector *self, int index1, int index2){
 
 size_t vec_get_valid_index(const Vector *self, const int index) {
     if (self->len != 0) {
-        return index % self->len;
+        if (index < 0) { // Handle negative index
+            int multiplier = ((index * -1) / (self->len + 1)) + 1;
+            return self->len * multiplier + index;
+        }
+        else {
+            return index % self->len;
+        }
     }
     return 0;
 }

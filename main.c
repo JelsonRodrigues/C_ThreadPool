@@ -38,37 +38,34 @@ void *f3(void * args) {
 
 int main() {
     srand(0);
-    ThreadPool *thread_pool = new_thread_pool(3);
+    ThreadPool *thread_pool = thread_pool_new(3);
 
-    Task task = {
-        .args = NULL,
-        .fn = f1,
-        .ret = NULL,
-        .has_finished = false,
-    };
-    Task task2 = {
-        .args = NULL,
-        .fn = f2,
-        .ret = NULL,
-        .has_finished = false,
-    };
-    Task task3 = {
-        .args = NULL,
-        .fn = f3,
-        .ret = NULL,
-        .has_finished = false,
-    };
+    Task *task1 = task_new(f1, NULL, NULL);
+    Task *task2 = task_new(f2, NULL, NULL);
+    Task *task3 = task_new(f3, NULL, NULL);
 #define TASKS_TO_DO 7
     for (size_t c= 0; c < TASKS_TO_DO; ++c){
-        add_task(thread_pool, &task3);
-        add_task(thread_pool, &task3);
-        task.args = (void *) ((long) rand());
-        add_task(thread_pool, &task);
-        task2.args = (void *) ((long) rand());
-        add_task(thread_pool, &task2);
+        pthread_mutex_lock(&mutex_stdout);
+        printf("Adding %ld iteration\n", c);
+        pthread_mutex_unlock(&mutex_stdout);
+
+        thread_pool_add_task(thread_pool, &task3);
+        thread_pool_add_task(thread_pool, &task3);
+        task1->args = (void *) ((long) rand());
+        thread_pool_add_task(thread_pool, &task1);
+        task2->args = (void *) ((long) rand());
+        thread_pool_add_task(thread_pool, &task2);
     }
 
-    finish_executing_and_terminate(thread_pool);
+    task_await(task1);
+    task_await(task2);
+    task_await(task3);
+    
+    thread_pool_finish_executing_and_terminate(thread_pool);
+
+    task_free(task1);
+    task_free(task2);
+    task_free(task3);
 
     return EXIT_SUCCESS;
 }

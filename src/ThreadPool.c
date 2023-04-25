@@ -1,9 +1,9 @@
 #include "include/ThreadPool.h"
 
-ThreadPool *new_thread_pool(size_t number_of_threads){
+ThreadPool *thread_pool_new(size_t number_of_threads){
     ThreadPool new = {
         .threads = vec_new(number_of_threads, sizeof(pthread_t), STRICT),
-        .communication = create_producer_consumer_buffer(MAX_WAITING_TASKS, sizeof(Task)),
+        .communication = create_producer_consumer_buffer(MAX_WAITING_TASKS, sizeof(Task *)),
     };
 
     ThreadPool *new_pool = (ThreadPool *) malloc(sizeof(ThreadPool));
@@ -28,13 +28,15 @@ void *runner(void *args) {
 
     bool received = false;
     do {
-        Task task;
+        Task *task;
         received = get_item_from_buffer(buff, &task);
 
         if (received){
-            task.has_finished = false;
-            task.ret = task.fn(task.args);
-            task.has_finished = true;
+            task->has_finished = false;
+            task->ret = task->fn(task->args);
+            task->has_finished = true;
+
+            while (sem_trywait(&task->waiting_count) == 0) sem_post(&task->wait_queue);
         }
     } while (received);
 
@@ -43,16 +45,49 @@ void *runner(void *args) {
     return NULL;
 }
 
-bool try_add_task(ThreadPool *self, Task *new_task) {
+bool thread_pool_try_add_task(ThreadPool *self, Task **new_task) {
     assert(self != NULL && new_task != NULL);
 
     return try_insert_to_buffer(&self->communication, new_task);
 }
-bool add_task(ThreadPool *self, Task *new_task){
+bool thread_pool_add_task(ThreadPool *self, Task **new_task){
     assert(self != NULL && new_task != NULL);
     return insert_to_buffer(&self->communication, new_task);
 }
-void release_pool(ThreadPool *self){
+
+Task *task_new(void * (*fn) (void *), void *args, void *ret){
+    Task *new = malloc(sizeof(Task));
+
+    if (new != NULL){
+        new->args = args;
+        new->fn = fn;
+        new->ret = ret;
+        new->has_finished = false;
+        sem_init(&new->wait_queue, 0, 0);
+        sem_init(&new->waiting_count, 0, 0);
+    }
+
+    return new;
+}
+
+void task_await(Task *self){
+    assert(self != NULL);
+    
+    if (self->has_finished == false){ 
+        sem_post(&self->waiting_count);
+        sem_wait(&self->wait_queue);
+    }
+}
+
+void task_free(Task *self) {
+    if (self != NULL){
+        sem_destroy(&self->wait_queue);
+        sem_destroy(&self->waiting_count);
+        free(self);
+    }
+}
+
+void thread_pool_release(ThreadPool *self){
     assert(self != NULL);
     for (size_t c = 0; c < self->threads.len; c++) {
         pthread_t tid;
@@ -66,7 +101,7 @@ void release_pool(ThreadPool *self){
     free(self);
 }
 
-void finish_executing_and_terminate(ThreadPool *self){
+void thread_pool_finish_executing_and_terminate(ThreadPool *self){
     assert(self != NULL);
     int number_of_producers = 0;
     sem_getvalue(&self->communication.total_producers, &number_of_producers);
@@ -82,5 +117,5 @@ void finish_executing_and_terminate(ThreadPool *self){
         pthread_join(tid, NULL);
     }
 
-    release_pool(self);
+    thread_pool_release(self);
 }
